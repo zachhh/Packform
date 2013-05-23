@@ -12,11 +12,11 @@ Packform::Input::Simple - Standard Packform inputs that require no special treat
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 
 =head1 SYNOPSIS
@@ -43,12 +43,14 @@ sub as_html {
 	my $attrs = $obj->_html_attrs;
 	my $name = $obj->{name};
 	my $val = $obj->get_value();
-	my $id = $type . '-' . $name;
+	my $id = "";
+	if ($name) { $id = $type . '-' . $name; }
 	my $html = "";
 	if ($type eq 'text') {
-		$html .= $prefix . "<input type='text' id='$id'";
+		$html .= $prefix . "<input type='text' id='$id' />$suffix\n";
 	}
 	elsif ($type eq 'checkbox') {
+		unless (defined $val) { $val = 1; }
 		$html .= $prefix . "<input type='checkbox' name='$name' id='$id' value='$val' $attrs />$suffix\n";
 	}
 	elsif ($type eq 'textarea') {
@@ -59,12 +61,12 @@ sub as_html {
 		$html .= $prefix . '<input type="submit" onclick="change_handler(this)"';
 		($val) && ($html .= " value='$val'");
 		$name ||= 'Submit';
-		$html .= " name='$name' $attrs> $suffix";
+		$html .= " name='$name' $attrs> $suffix\n";
 	}
 	elsif ($type eq 'paragraph') {
 		if ($name) { $html .= "<p name='$name' "; }
 		else { $html .= "<p "; }
-		$html .= "class='pfui-p-input'>$val</p>\n";
+		$html .= "class='pfui-p-input' role='document'>$val</p>\n";
 	}
 	elsif ($type eq 'hidden') {
 		$html .= "<input type='hidden' name='$name' value='$val' />\n";
@@ -78,17 +80,14 @@ sub as_html {
 }
 
 
-sub _bootstrap { shift; }
-
-sub _init_defaults {
-	my $self = $_[0];
-	my $attrs = $self->{attrs};
-	if ($attrs) {
-		delete $self->{attrs};
-		$self->set_attrs(%$attrs);
-	}
-	$_[0] = $self;
+sub _bootstrap {
+	my ($obj,$packform) = @_;
+	# Set the default suffix
+	$obj->{suffix} //= $packform->{defsuffix};
+	$obj;
 }
+
+sub _init_defaults { shift; }
 
 =head1 SEE ALSO
 

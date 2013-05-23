@@ -3,6 +3,7 @@ package Packform::Input::Plugin;
 use 5.006;
 use strict;
 use warnings FATAL => 'all';
+use Carp;
 
 our @ISA = qw(Packform::Input);
 
@@ -12,11 +13,11 @@ Packform::Input::Plugin - The class of wysiwyg, date and modal inputs for Packfo
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 
 =head1 SYNOPSIS
@@ -110,6 +111,7 @@ sub as_html {
 	elsif ($type eq 'modal') {
 		my $rand = int(rand(2**30));
 		$html .= '<div class="pfui-modal" modaltag="'.$rand.'">';
+		$html .= "$val</div>";
 		$html .= "<script type=\"text/javascript\">\n";
 		$html .= "
 		$(docuement).ready(function{
@@ -166,6 +168,10 @@ the specific type of widget to provide the necessary JavaScript, or the frontend
 
 sub set_plugin_attrs {
 	my $self = shift;
+	unless (scalar @_ % 2 == 0) {
+		carp "Bad call to set_plugin_attrs";
+		return $self;
+	}
 	$self->{pluginattrs} = { %{$self->{pluginattrs}}, ( @_ ) };
 	$self;
 }
@@ -195,17 +201,13 @@ sub _bootstrap {
 }
 
 sub _init_defaults {
-	my $self = $_[0];
-	
-	# These get pluginattrs (if not already there)
+	my $self = shift;
 	$self->{pluginattrs} //= {};
+	my %existing = %{$self->{pluginattrs}};
+	# These get pluginattrs (if not already there)
+	$self->{pluginattrs} //= { %existing };
 	my $type = $self->{type};
 	
-	my $attrs = $self->{attrs};
-	if ($attrs) {
-		delete $self->{attrs};
-		$self->set_attrs(%$attrs);
-	}
 	
 	# The "name" of the modal window is the title, unless the title exists
 	if ($type eq 'modal') {
@@ -219,7 +221,8 @@ sub _init_defaults {
 	}
 	# Initialize the pluginattrs with the defaults for the type.
 	if ($type eq 'wysiwyg') {
-		$self->{pluginattrs} = {
+		
+		$self->{pluginattrs} = { 
 			'theme' => "advanced",
 			'plugins' => "autolink,lists,spellchecker,style,table,save,advhr,advlink,iespell,inlinepopups,insertdatetime,preview,searchreplace,contextmenu,paste,directionality,fullscreen,noneditable,visualchars,nonbreaking,xhtmlxtras,template",
 			'theme_advanced_buttons1' => "bold,italic,underline,strikethrough,|,justifyleft,justifycenter,justifyright,justifyfull,|,formatselect,fontselect,fontsizeselect,forecolor",
@@ -229,11 +232,13 @@ sub _init_defaults {
 			'theme_advanced_toolbar_location' => "top",
 			'theme_advanced_toolbar_align' => "left",
 			'theme_advanced_statusbar_location' => "bottom",
-			'theme_advanced_resizing' => 'true'
+			'theme_advanced_resizing' => 'true',
+			# Theirs get appended to replace any defaults
+			%existing
 		};
 	}
 	# date has no default attributes
-	$_[0] = $self;
+	$self;
 }
 
 =back

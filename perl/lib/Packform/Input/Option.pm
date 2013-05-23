@@ -17,7 +17,7 @@ Version 0.01
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 =head1 SYNOPSIS
 
@@ -235,34 +235,63 @@ sub label_after {
 
 sub get_label_location { return shift->{labelloc}; }
 
+=item set_item_suffix();
+
+Set the markup to be provided after each radio button + text.
+Mostly this is so you can add a new line if desired.
+
+=cut
+
+sub set_item_suffix {
+	my $self = shift;
+	carp "Method only applies to radio groups" unless ($self->{type} eq 'radio');
+	$self->{itemsuffix} = shift;
+	$self;
+}
+
+=item get_item_suffix();
+
+This will return the item suffix that is currently set for the radio group.
+
+=cut
+
+sub get_item_suffix { shift->{itemsuffix}; }
 
 ###################
 ## INTERNAL
 ###################
 
 sub _init_defaults {
-	my $self = $_[0];
-	# This needs an ops arrayref.
-	$self->{opts} //= [];
-	# If there's any sort directive at this time, do it.
-	if ($self->{sort}) {
+	my $self = shift;
+	# This needs an ops arrayref, but the options here are given by the user
+	# and should be interpreted as the data to pass to add_options.
+	# Rewrite the options
+	if ($self->{opts}) {
 		my $opts = $self->{opts};
 		$self->{opts} = [];
-		$self->add_options($opts,$self->{sort});
-		delete $self->{sort};
+		if (exists $self->{sort}) {
+			$self->add_options($opts,$self->{sort});
+			delete $self->{sort};
+		}
+		else {
+			$self->add_options($opts);
+		}
 	}
-	my $attrs = $self->{attrs};
-	if ($attrs) {
-		delete $self->{attrs};
-		$self->set_attrs(%$attrs);
+	else {
+		$self->{opts} = [];
 	}
 	delete $self->{pluginattrs};
 	# radios have a default label location.
 	if ($self->{type} eq 'radio') { $self->{labelloc} //= 'before'; }
-	$_[0] = $self;
+	$self;
 }
 
-sub _bootstrap { shift; }
+sub _bootstrap {
+	my ($obj,$packform) = @_;
+	# Set the default suffix
+	$obj->{suffix} //= $packform->{defsuffix};
+	$obj;
+}
 
 sub _radio_html {
 	my $obj = shift;
@@ -299,6 +328,7 @@ sub _select_html {
 	my $name = $obj->{name};
 	unless (defined $name) { return ""; }
 	my $val = $obj->get_value;
+	unless ($val) { $val = []; }
 	# Make it an array ref
 	unless (ref($val)) { $val = [ $val ]; }
 	# Now a hash for easy checking.
@@ -335,7 +365,7 @@ sub _sorted_opts {
 	unless ($sort) { return @opts; }
 	my $filter;
 	my $s;
-	if ($sort =~ m/^\s*(-?\d+)\s*/) {
+	if ($sort =~ m/^\s*(-?\d+)\s*$/) {
 		my $s = $1 + 0;
 		unless ($s and -4 <= $s and $s <= 4) {
 			carp "Invalid sort option, assuming 1 (by displayed text)";

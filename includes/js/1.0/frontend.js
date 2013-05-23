@@ -24,25 +24,32 @@ var editorconfs = {};
 function process_response(data) {
 	
 	/***************** ERROR CHECKING ******************/
+	
+	var errs = 0;
+	
 	// debugging stuff
 	if (defined(data.dbg)) { $('div#pfui-details').html(data.dbg); $('div#pfui-details').show(); }
+	
 	// handle errors
-	if (defined(data.err)) { 
+	if (defined(data.err)) {
+		// Should we use a modal dialog?
+		// add_modal({ 'value': data.err, 'pluginattrs': { 'title': 'Error'}}, $('form#packform'));
 		$('div.pfui-errormsg').html('<p class="pfui-errormsg">'+data.err+'</p>');
-		return;
+		errs = errs + 1;
 	}
 	else { $('div.pfui-errormsg').empty(); }
 	// mark up existing data by giving input errors.
 	if (defined(data.inputerrs)) {
+		errs = errs + 1;
 		for (var j = 0; j < data.inputerrs.length; j++) {
 			var n = data.inputerrs[j].name;
 			var v = data.inputerrs[j].value;
 			set_input_postfix(n,v);
 		}
 		set_handlers();
-		// no further processing since there was an error.
-		return;
 	}
+	// no further processing if there was an error.
+	if (errs > 0) { return; }
 	
 	/*********** BUILD IT FROM THE GROUND UP ***********/
 	
@@ -304,7 +311,7 @@ function add_text_input(ob,elt) {
 	var inp = $('<input type="text" name="'+ob.name+'" id="text-'+ob.name+'">');
 	set_val(ob,inp);
 	set_attrs(ob,inp);
-	if (defined(ob.prefix)) { elt.append(get_prefix(ob.prefix)); }
+	if (defined(ob.prompt)) { elt.append(get_prefix(ob)); }
 	if (defined(ob.handler)) {
 		inp.keyup(function(evt) { if (evt.keyCode == 13) { change_handler(this); } });
 	}
@@ -317,6 +324,7 @@ function add_paragraph(ob,elt) {
 	if (!defined(ob.value)) { return 0; }
 	var inp = $('<p>');
 	inp.addClass('pfui-p-input');
+	inp.attr('role','document');
 	inp.append(ob.value);
 	if (defined(ob.name) && ob.name != null && ob.name != '') { inp.attr('name',ob.name); }
 	if (defined(ob.handler)) { inp.click(function() { change_handler(this); }); }
@@ -350,7 +358,7 @@ function add_password(ob,elt) {
 	var inp = $('<input type="password" name="'+ob.name+'" id="password-'+ob.name+'">');
 	set_val(ob,inp);
 	set_attrs(ob,inp);
-	if (defined(ob.prefix)) { elt.append(get_prefix(ob.prefix)); }
+	if (defined(ob.prompt)) { elt.append(get_prefix(ob)); }
 	if (defined(ob.handler)) {
 		inp.keyup(function(evt) { if (evt.keyCode == 13) { change_handler(this); } });
 	}
@@ -364,7 +372,7 @@ function add_textarea(ob,elt) {
 	var inp = $('<textarea name="'+ob.name+'" id="textarea-'+ob.name+'">');
 	set_val(ob,inp);
 	set_attrs(ob,inp);
-	if (defined(ob.prefix)) { elt.append(get_prefix(ob.prefix)); }
+	if (defined(ob.prompt)) { elt.append(get_prefix(ob)); }
 	if (defined(ob.handler)) { inp.change(function() { change_handler(this); }); }
 	elt.append(inp);
 	elt.append(get_suffix(ob.suffix));
@@ -376,7 +384,7 @@ function add_wysiwyg(ob,elt) {
 	var inp = $('<textarea name="'+ob.name+'">');
 	set_val(ob,inp);
 	set_attrs(ob,inp);
-	if (defined(ob.prefix)) { elt.append(get_prefix(ob.prefix)); }
+	if (defined(ob.prompt)) { elt.append(get_prefix(ob)); }
 	if (defined(ob.handler)) { inp.change(function() { change_handler(this); }); }
 	elt.append(inp);
 	elt.append(get_suffix(ob.suffix));
@@ -430,7 +438,7 @@ function add_select(ob,elt) {
 	if (defined(ob.handler)) {
 		inp.change(function() { change_handler(inp); });
 	}
-	if (defined(ob.prefix)) { elt.append(get_prefix(ob.prefix)); }
+	if (defined(ob.prompt)) { elt.append(get_prefix(ob)); }
 	elt.append(inp);
 	elt.append(get_suffix(ob.suffix));
 	return 1;
@@ -441,7 +449,7 @@ function add_checkbox(ob,elt) {
 	var inp = $('<input type="checkbox" name="'+ob.name+'" id="checkbox-'+ob.name+'">');
 	set_val(ob,inp);
 	set_attrs(ob,inp);
-	if (defined(ob.prefix)) { elt.append(get_prefix(ob.prefix)); }
+	if (defined(ob.prompt)) { elt.append(get_prefix(ob)); }
 	if (defined(ob.handler)) { inp.change(function() { change_handler(this); }); }
 	elt.append(inp);
 	elt.append(get_suffix(ob.suffix));
@@ -461,7 +469,7 @@ function add_radio(ob,elt) {
 	var handle = false;
 	if (defined(ob.handler)) { handle = true; }
 	if (defined(ob.itemsuffix)) { itemsuff = ob.itemsuffix; }
-	if (defined(ob.prefix)) { elt.append(get_prefix(ob.prefix)); }
+	if (defined(ob.prompt)) { elt.append(get_prefix(ob)); }
 	var p = $('<p name="'+ob.name+'">');
 	p.addClass('pfui-radio-wrapper');
 	for (var j = 0; j < opts.length; j++) {
@@ -501,7 +509,7 @@ function add_hidden(ob,elt) {
 
 function add_button(ob,elt) {
 	var inp = null;
-	if (defined(ob.prefix)) { elt.append(get_prefix(ob.prefix)); }
+	if (defined(ob.prompt)) { elt.append(get_prefix(ob)); }
 	if (defined(ob.name)) { inp = $('<input type="button" name="'+ob.name+'">'); }
 	else { inp = $('<input type="button">'); }
 	set_val(ob,inp);
@@ -512,7 +520,7 @@ function add_button(ob,elt) {
 
 function add_date(ob,elt) {
 	if (!defined(ob.name)) { return 0; }
-	if (defined(ob.prefix)) { elt.append(get_prefix(ob.prefix)); }
+	if (defined(ob.prompt)) { elt.append(get_prefix(ob)); }
 	var inp = $('<input type="text" name="'+ob.name+'" id="'+ob.name+'">');
 	set_val(ob,inp);
 	set_attrs(ob,inp);
@@ -600,7 +608,7 @@ function set_handlers() {
 
 // need the entire object so we can be good about providing labels for ADA considerations
 function get_prefix(obj) {
-	var str = obj.prefix;
+	var str = obj.prompt;
 	var pfx = $('<p class="pfui-prefix">');
 	var spn = $('<span>');
 	var label = get_label(obj);

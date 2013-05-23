@@ -16,11 +16,11 @@ Packform::Input - Objects representing inputs sent back to the page for use with
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 
 my @known_types = qw(text textarea select radio hidden submit checkbox password paragraph date modal wysiwyg);
@@ -54,10 +54,10 @@ Use of the new constructor directly is not advised.
 
 =over 4
 
-=item new(type, b<args> );
+=item new(class, type, b<args> );
 
 Create an input of the given type with the parameters given by args.  The parameters depend on the type.
-This should probably not be used directly.  For details, see the new_* and add_* methods in Packform.
+This SHOULD NOT be used directly.  Rather, use the new_* and add_* methods in Packform.
 
 =back
 =cut
@@ -171,7 +171,7 @@ inputs.
 
 =cut
 
-sub set_prompt { return _set_attr('prefix',@_); }
+sub set_prompt { return _set_attr('prompt',@_); }
 
 
 =item set_suffix( suffix );
@@ -216,7 +216,13 @@ All of these will be incorporated in the resulting HTML tag.
 
 sub set_attrs {
 	my $self = shift;
-	$self->{attrs} = { %{$self->{attrs}}, ( @_ ) };
+	unless (scalar @_ % 2 == 0) { carp "Bad call to set_attrs"; return $self; }
+	if (exists $self->{attrs}) {
+		$self->{attrs} = { %{$self->{attrs}}, ( @_ ) };
+	}
+	else {
+		$self->{attrs} = { ( @_ ) };
+	}
 	$self;
 }
 
@@ -252,7 +258,7 @@ Returns the prompt for the input field.
 
 =cut
 
-sub get_prompt { return shift->{prefix}; }
+sub get_prompt { return shift->{prompt}; }
 
 =item get_suffix();
 
@@ -347,27 +353,27 @@ sub _carp_required_attributes {
 
 sub _html_prefix {
 	my $self = shift;
-	my $str = $self->{prompt};
+	my $str = $self->get_prompt;
 	my $type = $self->{type};
 	# Be ADA-aware, and use labels where possible.
-	if (defined $label_hash{$type}) {
+	if (exists $label_hash{$type} and $str) {
 		my $id = $type."-".$self->{name};
 		if ($type eq 'date') { $id = $self->{name}; }
 		$str = "<label for='$id'>$str</label>";
 	}
-	if (defined $str) { return '<p class="pfui-prefix"><span>' . $str . '</span></p>'; }
-	return "";
+	if (defined $str) { return "<p class=\"pfui-prefix\"><span>$str</span></p>\n"; }
+	return "\n";
 }
 
 sub _html_attrs {
 	my $obj = shift;
-	return join("", map { ' ' . $_ . '="' . $obj->{attrs}->{$_} . '"' } keys %{$obj->{attrs}} );
+	return join("", map { defined $obj->{attrs}->{$_} ? " $_='$obj->{attrs}->{$_}'" : " $_"  } keys %{$obj->{attrs}} );
 }
 
 sub _html_suffix {
 	my $str = shift->{suffix};
-	unless (defined $str) { return ""; }
-	return "<span class='pfui-post-input'>$str</span>";
+	unless (defined $str) { return "\n"; }
+	return "<span class='pfui-post-input'>$str</span>\n";
 }
 
 sub _set_attr {

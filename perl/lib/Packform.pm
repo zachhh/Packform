@@ -9,6 +9,8 @@ use Carp;
 # NOTE: if JSON::XS is available, it is used by this module (unless you have a broken JSON install)
 require JSON;
 
+use JSON;
+
 # We are explicitly creating Packform::Input objects.
 use Packform::Input;
 
@@ -26,7 +28,7 @@ Packform - Perl and Ajax Communication Kit, a Framework for Organized Response M
 
 =head1 VERSION
 
-Version 1.00
+Version 1.01
 
 =cut
 
@@ -34,7 +36,7 @@ Version 1.00
 ## GLOBAL VARIABLES ##
 ######################
 
-our $VERSION = '1.00';
+our $VERSION = '1.01';
 
 ### Some configuration stuff for defaults.
 ### If we do package and deploy this, we need a way of making this configurable.
@@ -479,13 +481,8 @@ or undef if there is an error.
 
 =cut
 
-sub set_frontend {
-	my ($self,$v) = @_;
-	# Make it numeric
-	$v += 0;
-	$self->{config}->{frontend} = $v;
-	$self;
-}
+sub set_frontend { _set_config('frontend',@_); }
+
 
 =item set_context( target, title, heading );
 =item or
@@ -1115,7 +1112,7 @@ Using the first calling style, you have to set the title in pluginattrs with som
 
 	# You must provide a name with this calling style.
 	$ui->add_modal('name',
-		content => "This will be displayed",
+		value => "This will be displayed",
 		pluginattrs => { title => "Title" }
 	);
 	# If you do not need the name, it would be easier to just
@@ -1131,7 +1128,7 @@ For more information about plugin attributes, see Packform::Input::Plugin.
 sub new_modal { return _new_input('modal',@_); }
 sub add_modal { return _add_input('modal',@_); }
 
-=item add_wysiwyg( name, %args);
+=item add_wysiwyg( name, %args );
 =item new_wysiwyg( name, %args );
 
 The supported keys for the %args hash are: value, prompt, suffix, pluginattrs.
@@ -1586,9 +1583,14 @@ sub html_output {
 	my $html = "<!-- BEGIN Packform area -->\n";
 	# Provide info to assistive technology that this has active content
 	$html .= '<div class="pfui-hidden-div">';
-	$html .= 'This page uses active content that is updated with each form submission.</div>';
+	$html .= "This page uses active content and a tabbed presentation through an accordion.  <br/>\n";
+        $html .= "The content of each accordion panel (the tab content) contains both text and form elements. <br/>\n";
+        $html .= "The text components are given a role of document so they may be read with assistive technology. <br/>\n";
+        $html .= "Since some of the text is essential for understanding the form, it is recommended that you step ";
+        $html .= "through the document one line at a time.\n";
+        $html .= '</div>';
 	# Our wrapper should inform the user of additions (and removals?)
-	$html .= '<!-- begin pfui-wrapper -->';
+	$html .= "\n<!-- begin pfui-wrapper -->\n";
 	$html .= '<div class="pfui-wrapper" aria-live="polite" aria-relevant="additions">';
 	# Region for the error messages should be live
 	$html .= "\n\t" . '<div class="pfui-errormsg" aria-live="polite" aria-relevant="text">';
@@ -1606,10 +1608,10 @@ sub html_output {
 	$html .= "$heading</h3>\n";
 	# The span that wraps the response needs to be an aria-live region. 
 	$html .= "\t\t\t<div id=\"$target\" aria-live=\"polite\" aria-relevant=\"text\">";
-	$html .= '<span aria-live="polite" aria-atomic="true">';
+	$html .= '<span aria-live="polite" aria-atomic="true">' . "\n";
 	# Add the input elements (using their own methods)
 	foreach my $item (@{$self->{inputs}}) { $html .= $item->as_html(); }
-	$html .= "\t\t\t</span></div><!-- end target -->\n";
+	$html .= "\n\t\t\t</span></div><!-- end target -->\n";
 	# End the accordion and form
 	$html .= "\t\t</div><!-- end accordion -->\n";
 	$html .= "\t</form>\n";
@@ -1646,7 +1648,9 @@ sub json_output {
 	delete $hash->{config};
 	# Rebuild the inputs with unblessed hashrefs.
 	delete $hash->{inputs};
-	foreach my $inp (@{$self->{inputs}}) { push @{$hash->{inputs}}, { %$inp }; }
+        my @inps = ();
+	foreach my $inp (@{$self->{inputs}}) { push @inps, { %$inp }; }
+        if (@inps) { $hash->{inputs} = \@inps; }
 	# Now we can encode
 	return encode_json $hash;
 }
@@ -1747,7 +1751,9 @@ sub set_page_title { _set_config('title',@_); }
 If you want to include meta data (actually, anything) before all of the packform information, you
 can provide the HTML with set_meta_data.  This is used if you are going to call html_full,
 html_header, splice_html or splice_header.  In every case, this goes at the very beginning of the
-HEAD tag, before anything else.  
+HEAD tag, before anything else.
+
+NOTE: You must provide the entire HTML tags!
 
 =cut
 
@@ -1834,8 +1840,10 @@ sub splice_header {
 	# Get the data to put there.
 	my $meta = $self->{config}->{meta} // "";
 	if ($meta) { $meta .= "\n"; }
-	my $first = $self->{config}->{title} // "";
-	if ( $txt =~ m/<title/i ) { $first = ""; }
+        my $first = "";
+	my $tit = $self->{config}->{title} // "";
+	if ( $txt =~ m/<title/i ) { $tit = ""; }
+        if ($tit) { $first = "\n<title>$tit</title>\n"; }
 	if ($meta) { $first = "\n" . $meta . $first;}
 
 	# Add it at the beginning.
