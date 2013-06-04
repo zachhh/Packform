@@ -47,7 +47,7 @@ sub as_html {
 	if ($name) { $id = $type . '-' . $name; }
 	my $html = "";
 	if ($type eq 'text') {
-		$html .= $prefix . "<input type='text' id='$id' />$suffix\n";
+		$html .= "$prefix<input type='text' id='$id' name='$name'/>$suffix\n";
 	}
 	elsif ($type eq 'checkbox') {
 		unless (defined $val) { $val = 1; }
@@ -66,13 +66,13 @@ sub as_html {
 	elsif ($type eq 'paragraph') {
 		if ($name) { $html .= "<p name='$name' "; }
 		else { $html .= "<p "; }
-		$html .= "class='pfui-p-input' role='document'>$val</p>\n";
+		$html .= "class='pfui-p-input'>$val</p>\n";
 	}
 	elsif ($type eq 'hidden') {
 		$html .= "<input type='hidden' name='$name' value='$val' />\n";
 	}
 	elsif ($type eq 'password') {
-		$html .= "<input type='password' name='$name' id='$id' $attrs";
+		$html .= "$prefix<input type='password' name='$name' id='$id' $attrs";
 		($val) && ($html .= " value='$val'");
 		$html .= " />$suffix\n";
 	}

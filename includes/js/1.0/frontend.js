@@ -105,8 +105,8 @@ function process_response(data) {
 		create = true;
 		div = $('<div>').attr({'id': data.target});
 		// add the ARIA attributes
-		div.attr('aria-live','polite');
-		div.attr('aria-relevant','text');
+		//div.attr('aria-live','polite');
+		//div.attr('aria-relevant','text');
 	}
 	// populate this data in a span tag
 	var s = $('<span>');
@@ -324,7 +324,7 @@ function add_paragraph(ob,elt) {
 	if (!defined(ob.value)) { return 0; }
 	var inp = $('<p>');
 	inp.addClass('pfui-p-input');
-	inp.attr('role','document');
+	//inp.attr('role','document');
 	inp.append(ob.value);
 	if (defined(ob.name) && ob.name != null && ob.name != '') { inp.attr('name',ob.name); }
 	if (defined(ob.handler)) { inp.click(function() { change_handler(this); }); }

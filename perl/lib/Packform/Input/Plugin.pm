@@ -102,9 +102,7 @@ sub as_html {
 		$html .= $suffix;
 	}
 	elsif ($type eq 'wysiwyg') {
-		$html .= $prefix . '<textarea name="' . $name . '"' . $attrs . ">\n";
-		$html .= $val // "";
-		$html .= "</textarea>" . $suffix;
+		$html .= $prefix . '<textarea name="' . $name . '"' . $attrs . ">\n$val</textarea>$suffix";
 		$html .= "<script type=\"text/javascript\"> \$('textarea#$name').tinymce($plugin_attrs); ";
 		$html .= "</script>\n";
 	}

@@ -51,7 +51,7 @@ our $VERSION = '1.01';
 ### More likely, Autoconfig should handle this...  where does IT get it's information.
 ###
 my $JQ_VERSION = '1.9.1';
-my $JQUI_VERSION = '1.10.3';
+my $JQUI_VERSION = '1.10.1';
 my $JQUI_THEME = 'base';
 my $TINYMCE = '/includes/js/tinymce/3.5.8/jscripts/tiny_mce/jquery.tinymce.js';
 my $FRONTEND = '0.5';
@@ -1203,11 +1203,11 @@ sub get_all_names {
 =item get_all_inputs();
 
 This returns an array of input objects, in the order they were added.  Just as with
-get_input_by_name, you can work directly on the resulting objects.  Say you wanted to add an event
-handler to all of the objects (whether they support it or not!).  You could:
+get_input_by_name, you can work directly on the resulting objects.  Say you wanted to set the
+suffix on every input element.  You could:
 
 	my @inputs = $ui->get_all_inputs();
-	foreach (@inputs) { $_->add_handler(); }
+	foreach (@inputs) { $_->set_suffix('<br />'); }
 
 =cut
 
@@ -1579,19 +1579,17 @@ sub html_output {
 	my $details = $self->{help} // "";
 	my $url = $self->{url} // "";
 	my $fe = $self->{frontend};
-	my $target = $self->{target};
+	my $target = $self->{target} // "";
 	my $html = "<!-- BEGIN Packform area -->\n";
 	# Provide info to assistive technology that this has active content
 	$html .= '<div class="pfui-hidden-div">';
-	$html .= "This page uses active content and a tabbed presentation through an accordion.  <br/>\n";
-        $html .= "The content of each accordion panel (the tab content) contains both text and form elements. <br/>\n";
-        $html .= "The text components are given a role of document so they may be read with assistive technology. <br/>\n";
+	$html .= "This page uses active content and a tabbed presentation through an accordion. <br />\n";
+        $html .= "The content of each accordion panel, the tab content, contains both text and form elements. <br />\n";
         $html .= "Since some of the text is essential for understanding the form, it is recommended that you step ";
         $html .= "through the document one line at a time.\n";
         $html .= '</div>';
-	# Our wrapper should inform the user of additions (and removals?)
 	$html .= "\n<!-- begin pfui-wrapper -->\n";
-	$html .= '<div class="pfui-wrapper" aria-live="polite" aria-relevant="additions">';
+        $html .= '<div class="pfui-wrapper">';
 	# Region for the error messages should be live
 	$html .= "\n\t" . '<div class="pfui-errormsg" aria-live="polite" aria-relevant="text">';
 	$html .= $err . "</div>\n\t";
@@ -1607,7 +1605,8 @@ sub html_output {
 	$html .= '<h3 aria-atomic="true" aria-live="polite" aria-relevant="text">';
 	$html .= "$heading</h3>\n";
 	# The span that wraps the response needs to be an aria-live region. 
-	$html .= "\t\t\t<div id=\"$target\" aria-live=\"polite\" aria-relevant=\"text\">";
+	#$html .= "\t\t\t<div id=\"$target\" aria-live=\"polite\" aria-relevant=\"text\">";
+        $html .= "\t\t\t<div id=\"$target\">";
 	$html .= '<span aria-live="polite" aria-atomic="true">' . "\n";
 	# Add the input elements (using their own methods)
 	foreach my $item (@{$self->{inputs}}) { $html .= $item->as_html(); }
@@ -1914,7 +1913,7 @@ sub splice_html {
 	my $self = shift;
 	my $html = shift;
 	# Splice in the available things if nothing is already included.
-	$html = splice_header( $html );
+	$html = $self->splice_header( $html );
 	
 	if ($html =~ m/<!--\s*Packform\s*-->/i) {
 		my ($before,$after) = split(/<!--\s*Packform\s*-->/i, $html, 2);
@@ -1926,6 +1925,9 @@ sub splice_html {
 		# Need to replace the </body> tag.
 		$html = $before . $self->html_output() . $b . $after;
 	}
+        else {
+            carp "Invalid HTML";
+        }
 	return $html;
 }
 
